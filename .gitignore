@@ -37,7 +37,7 @@ dist/
 # === Engine: Godot ===
 .godot/
 *.translation
-export_presets.cfg
+# export_presets.cfg  # Needed for CI web builds
 # Uncomment if using Godot:
 # *.import
 
