@@ -143,20 +143,25 @@ func _setup_ambience_player() -> void:
 			break
 
 
-func _load_sfx_assets() -> void:
-	var sfx_dir := "res://assets/audio/sfx/"
-	var dir := DirAccess.open(sfx_dir)
-	if not dir:
-		return
+## Explicit SFX paths — DirAccess fails in web exports (.pck).
+const SFX_PATHS: Array[String] = [
+	"res://assets/audio/sfx/collect_bronze.wav",
+	"res://assets/audio/sfx/collect_gold.wav",
+	"res://assets/audio/sfx/collect_silver.wav",
+	"res://assets/audio/sfx/hit_bomb.wav",
+	"res://assets/audio/sfx/hit_poop.wav",
+	"res://assets/audio/sfx/hit_spike.wav",
+	"res://assets/audio/sfx/life_lost.wav",
+	"res://assets/audio/sfx/streak_milestone.wav",
+	"res://assets/audio/sfx/ui_tap.wav",
+]
 
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".wav") or file_name.ends_with(".ogg"):
-			var tag := StringName(file_name.get_basename())
-			_sfx_map[tag] = load(sfx_dir + file_name)
-		file_name = dir.get_next()
-	dir.list_dir_end()
+
+func _load_sfx_assets() -> void:
+	for path in SFX_PATHS:
+		if ResourceLoader.exists(path):
+			var tag := StringName(path.get_file().get_basename())
+			_sfx_map[tag] = load(path)
 
 
 func _get_available_sfx_player() -> AudioStreamPlayer:

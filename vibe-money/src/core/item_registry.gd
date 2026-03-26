@@ -35,21 +35,24 @@ func get_spawn_table() -> Array:
 	return result
 
 
-func _load_all_items() -> void:
-	var dir := DirAccess.open(ITEMS_PATH)
-	if not dir:
-		push_error("[ItemRegistry] Cannot open items directory: %s" % ITEMS_PATH)
-		return
+## Explicit item paths — DirAccess fails in web exports (.pck).
+const ITEM_PATHS: Array[String] = [
+	"res://assets/data/items/coin_bronze.tres",
+	"res://assets/data/items/coin_silver.tres",
+	"res://assets/data/items/coin_gold.tres",
+	"res://assets/data/items/hazard_bomb.tres",
+	"res://assets/data/items/hazard_poop.tres",
+	"res://assets/data/items/hazard_spike.tres",
+]
 
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var item := load(ITEMS_PATH + file_name)
-			if item:
-				if _items.has(item.id):
-					push_error("[ItemRegistry] Duplicate item ID: %s in %s" % [item.id, file_name])
-				else:
-					_items[item.id] = item
-		file_name = dir.get_next()
-	dir.list_dir_end()
+
+func _load_all_items() -> void:
+	for path in ITEM_PATHS:
+		var item := load(path)
+		if item:
+			if _items.has(item.id):
+				push_error("[ItemRegistry] Duplicate item ID: %s in %s" % [item.id, path])
+			else:
+				_items[item.id] = item
+		else:
+			push_error("[ItemRegistry] Failed to load item: %s" % path)
