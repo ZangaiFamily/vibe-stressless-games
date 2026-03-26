@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/item_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hazard_bomb"
+display_name = "Bomb"
+category = 1
+point_value = 0
+currency_value = 0
+rarity_weight = 50.0
+fall_speed_modifier = 0.9
+hitbox_radius = 20.0
+visual_scale = 1.2
+feedback_tag = &"hit_bomb"
+damage = 1

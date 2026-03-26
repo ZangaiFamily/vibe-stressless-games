@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/item_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hazard_poop"
+display_name = "Poop"
+category = 1
+point_value = 0
+currency_value = 0
+rarity_weight = 35.0
+fall_speed_modifier = 1.0
+hitbox_radius = 16.0
+visual_scale = 1.0
+feedback_tag = &"hit_poop"
+damage = 1
