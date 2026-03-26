@@ -1,4 +1,8 @@
 #!/bin/bash
+# Resolve project root from this script location
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT" || exit 0
+
 # Claude Code PostToolUse hook: Validates asset files after Write/Edit
 # Checks naming conventions for files in assets/ directory
 # Exit 0 = success (non-blocking, PostToolUse cannot block)

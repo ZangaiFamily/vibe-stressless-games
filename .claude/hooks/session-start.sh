@@ -1,4 +1,8 @@
 #!/bin/bash
+# Resolve project root from this script location
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT" || exit 0
+
 # Claude Code SessionStart hook: Load project context at session start
 # Outputs context information that Claude sees when a session begins
 #

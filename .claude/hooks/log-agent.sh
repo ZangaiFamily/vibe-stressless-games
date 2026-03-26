@@ -1,4 +1,8 @@
 #!/bin/bash
+# Resolve project root from this script location
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT" || exit 0
+
 # Claude Code SubagentStart hook: Log agent invocations for audit trail
 # Tracks which agents are being used and when
 #

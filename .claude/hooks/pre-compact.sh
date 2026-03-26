@@ -1,4 +1,8 @@
 #!/bin/bash
+# Resolve project root from this script location
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT" || exit 0
+
 # Claude Code PreCompact hook: Dump session state before context compression
 # This output appears in the conversation right before compaction, ensuring
 # critical state survives the summarization process.

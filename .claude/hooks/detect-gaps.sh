@@ -1,4 +1,8 @@
 #!/bin/bash
+# Resolve project root from this script location
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT" || exit 0
+
 # Hook: detect-gaps.sh
 # Event: SessionStart
 # Purpose: Detect missing documentation when code/prototypes exist
