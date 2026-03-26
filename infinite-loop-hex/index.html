@@ -108,12 +108,62 @@ body {
 	padding: 4px 6px;
 	visibility: visible;
 }
+
+#update-banner {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	background: linear-gradient(135deg, #2d6a4f, #40916c);
+	color: #fff;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	font-size: 14px;
+	padding: 10px 16px;
+	z-index: 9999;
+	text-align: center;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+#update-banner button {
+	background: #fff;
+	color: #2d6a4f;
+	border: none;
+	border-radius: 4px;
+	padding: 4px 14px;
+	margin-left: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+#update-banner button:hover {
+	background: #d8f3dc;
+}
+
+#update-banner .dismiss {
+	background: transparent;
+	color: rgba(255,255,255,0.8);
+	margin-left: 8px;
+	padding: 4px 8px;
+	font-size: 16px;
+}
+
+#update-banner .dismiss:hover {
+	color: #fff;
+}
 		</style>
 		<link id='-gd-engine-icon' rel='icon' type='image/png' href='index.icon.png' />
 <link rel='apple-touch-icon' href='index.apple-touch-icon.png'/>
 
 	</head>
 	<body>
+		<div id="update-banner">
+			A new version is available!
+			<button onclick="updateAndReload()">Update Now</button>
+			<button class="dismiss" onclick="this.parentElement.style.display='none'">&times;</button>
+		</div>
+
 		<canvas id="canvas">
 			HTML5 canvas appears to be unsupported in the current browser.<br >
 			Please try updating or use a different browser.
@@ -135,9 +185,77 @@ body {
 			<div id="status-notice" class="godot" style="display: none;"></div>
 		</div>
 
-		<script src="coi-serviceworker.js"></script>
 		<script src="index.js"></script>
 		<script>
+/**
+ * Service Worker Update Manager
+ * - Deregisters stale COI service workers that conflict with game loading
+ * - Detects new SW versions and shows an update banner
+ */
+let _pendingWorker = null;
+
+function updateAndReload() {
+	if (_pendingWorker) {
+		_pendingWorker.postMessage('update');
+	} else {
+		// Clear all caches and hard reload
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.getRegistrations().then(function (registrations) {
+				registrations.forEach(function (reg) { reg.unregister(); });
+			});
+			caches.keys().then(function (names) {
+				names.forEach(function (name) { caches.delete(name); });
+			});
+		}
+		setTimeout(function () { window.location.reload(); }, 300);
+	}
+}
+
+(function () {
+	if (!('serviceWorker' in navigator)) return;
+
+	// Deregister stale COI service workers
+	navigator.serviceWorker.getRegistrations().then(function (registrations) {
+		registrations.forEach(function (reg) {
+			if (reg.active && reg.active.scriptURL.indexOf('coi-serviceworker') !== -1) {
+				console.log('[SW] Deregistering stale COI service worker:', reg.active.scriptURL);
+				reg.unregister().then(function () {
+					console.log('[SW] COI service worker removed — reloading');
+					window.location.reload();
+				});
+			}
+		});
+	});
+
+	// Monitor for SW updates (if any SW is registered)
+	navigator.serviceWorker.getRegistration().then(function (reg) {
+		if (!reg) return;
+
+		if (reg.waiting) {
+			_pendingWorker = reg.waiting;
+			document.getElementById('update-banner').style.display = 'block';
+		}
+
+		reg.addEventListener('updatefound', function () {
+			var newWorker = reg.installing;
+			if (!newWorker) return;
+
+			newWorker.addEventListener('statechange', function () {
+				if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+					_pendingWorker = newWorker;
+					document.getElementById('update-banner').style.display = 'block';
+					console.log('[SW] New version available — update banner shown');
+				}
+			});
+		});
+	});
+
+	navigator.serviceWorker.addEventListener('controllerchange', function () {
+		console.log('[SW] New service worker activated — reloading');
+		window.location.reload();
+	});
+}());
+
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":56544,"index.wasm":28001575},"focusCanvas":true,"gdextensionLibs":[]};
 const engine = new Engine(GODOT_CONFIG);
 
