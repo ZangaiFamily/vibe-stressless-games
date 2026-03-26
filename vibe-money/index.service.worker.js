@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1774541794|1840566';
+const CACHE_VERSION = '1774543630|57115982';
 /** @type {string} */
 const CACHE_PREFIX = 'Vibe Money-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
