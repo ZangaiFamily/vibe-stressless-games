@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/grid_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+grid_radius = 3
+hex_size = 50.0
+bg_color = Color(0.102, 0.102, 0.18, 1)
+hex_outline_color = Color(0.149, 0.188, 0.329, 1)
+line_color_unsolved = Color(0.29, 0.29, 0.416, 1)
+line_color_solved = Color(0, 0.824, 1, 1)
+line_color_won = Color(0, 1, 0.533, 1)
+line_width = 4.0
+outline_width = 1.5
+dot_radius = 5.0
+rotation_duration = 0.15
+extra_connection_chance = 0.3
+min_scramble_steps = 1
+max_scramble_steps = 5
