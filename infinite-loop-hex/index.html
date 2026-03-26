@@ -185,11 +185,12 @@ body {
 			<div id="status-notice" class="godot" style="display: none;"></div>
 		</div>
 
+		<script src="coi-serviceworker.js"></script>
 		<script src="index.js"></script>
 		<script>
 /**
  * Service Worker Update Manager
- * - Deregisters stale COI service workers that conflict with game loading
+ * - COI service worker is required for this game (SharedArrayBuffer)
  * - Detects new SW versions and shows an update banner
  */
 let _pendingWorker = null;
@@ -214,20 +215,7 @@ function updateAndReload() {
 (function () {
 	if (!('serviceWorker' in navigator)) return;
 
-	// Deregister stale COI service workers
-	navigator.serviceWorker.getRegistrations().then(function (registrations) {
-		registrations.forEach(function (reg) {
-			if (reg.active && reg.active.scriptURL.indexOf('coi-serviceworker') !== -1) {
-				console.log('[SW] Deregistering stale COI service worker:', reg.active.scriptURL);
-				reg.unregister().then(function () {
-					console.log('[SW] COI service worker removed — reloading');
-					window.location.reload();
-				});
-			}
-		});
-	});
-
-	// Monitor for SW updates (if any SW is registered)
+	// Monitor COI service worker for updates
 	navigator.serviceWorker.getRegistration().then(function (reg) {
 		if (!reg) return;
 
