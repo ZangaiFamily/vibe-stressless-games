@@ -1,249 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no">
-		<title>Infinity Loop HEX</title>
-		<style>
-body {
-	touch-action: none;
-	margin: 0;
-	border: 0 none;
-	padding: 0;
-	text-align: center;
-	background-color: black;
-}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibe Stressless Games</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-#canvas {
-	display: block;
-	margin: 0;
-	color: white;
-}
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #06060f;
+      color: #e8e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-#canvas:focus {
-	outline: none;
-}
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      overflow: hidden;
+    }
 
-.godot {
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	color: #e0e0e0;
-	background-color: #3b3943;
-	background-image: linear-gradient(to bottom, #403e48, #35333c);
-	border: 1px solid #45434e;
-	box-shadow: 0 0 1px 1px #2f2d35;
-}
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%; left: -20%;
+      width: 140%; height: 180%;
+      background:
+        radial-gradient(ellipse 600px 400px at 30% 20%, rgba(124,58,237,.15), transparent),
+        radial-gradient(ellipse 500px 350px at 70% 60%, rgba(6,182,212,.10), transparent);
+      pointer-events: none;
+      animation: glow 12s ease-in-out infinite alternate;
+    }
 
-/* Status display */
+    @keyframes glow {
+      0%   { opacity: .6; transform: scale(1); }
+      100% { opacity: 1;  transform: scale(1.05); }
+    }
 
-#status {
-	position: absolute;
-	left: 0;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	/* don't consume click events - make children visible explicitly */
-	visibility: hidden;
-}
+    .hero h1 {
+      position: relative;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #a78bfa 0%, #06b6d4 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
-#status-progress {
-	width: 366px;
-	height: 7px;
-	background-color: #38363A;
-	border: 1px solid #444246;
-	padding: 1px;
-	box-shadow: 0 0 2px 1px #1B1C22;
-	border-radius: 2px;
-	visibility: visible;
-}
+    .hero p {
+      position: relative;
+      margin-top: 1rem;
+      font-size: 1.15rem;
+      color: #9090a8;
+      max-width: 440px;
+      line-height: 1.6;
+    }
 
-@media only screen and (orientation:portrait) {
-	#status-progress {
-		width: 61.8%;
-	}
-}
+    /* ── Games Grid ── */
+    .games {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem 5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
 
-#status-progress-inner {
-	height: 100%;
-	width: 0;
-	box-sizing: border-box;
-	transition: width 0.5s linear;
-	background-color: #202020;
-	border: 1px solid #222223;
-	box-shadow: 0 0 1px 1px #27282E;
-	border-radius: 3px;
-}
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(165deg, #111127 0%, #0d0d1a 100%);
+      border: 1px solid #1e1e3a;
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
 
-#status-indeterminate {
-	height: 42px;
-	visibility: visible;
-	position: relative;
-}
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: #7c3aed;
+      box-shadow: 0 12px 40px rgba(124,58,237,.12);
+    }
 
-#status-indeterminate > div {
-	width: 4.5px;
-	height: 0;
-	border-style: solid;
-	border-width: 9px 3px 0 3px;
-	border-color: #2b2b2b transparent transparent transparent;
-	transform-origin: center 21px;
-	position: absolute;
-}
+    .card-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
 
-#status-indeterminate > div:nth-child(1) { transform: rotate( 22.5deg); }
-#status-indeterminate > div:nth-child(2) { transform: rotate( 67.5deg); }
-#status-indeterminate > div:nth-child(3) { transform: rotate(112.5deg); }
-#status-indeterminate > div:nth-child(4) { transform: rotate(157.5deg); }
-#status-indeterminate > div:nth-child(5) { transform: rotate(202.5deg); }
-#status-indeterminate > div:nth-child(6) { transform: rotate(247.5deg); }
-#status-indeterminate > div:nth-child(7) { transform: rotate(292.5deg); }
-#status-indeterminate > div:nth-child(8) { transform: rotate(337.5deg); }
+    .card h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: .5rem;
+    }
 
-#status-notice {
-	margin: 0 100px;
-	line-height: 1.3;
-	visibility: visible;
-	padding: 4px 6px;
-	visibility: visible;
-}
-		</style>
-		<link id='-gd-engine-icon' rel='icon' type='image/png' href='index.icon.png' />
-<link rel='apple-touch-icon' href='index.apple-touch-icon.png'/>
+    .card p {
+      font-size: .95rem;
+      color: #8888a4;
+      line-height: 1.55;
+      flex: 1;
+    }
 
-	</head>
-	<body>
-		<canvas id="canvas">
-			HTML5 canvas appears to be unsupported in the current browser.<br >
-			Please try updating or use a different browser.
-		</canvas>
-		<div id="status">
-			<div id="status-progress" style="display: none;" oncontextmenu="event.preventDefault();">
-				<div id ="status-progress-inner"></div>
-			</div>
-			<div id="status-indeterminate" style="display: none;" oncontextmenu="event.preventDefault();">
-				<div></div>
-				<div></div>
-				<div></div>
-				<div></div>
-				<div></div>
-				<div></div>
-				<div></div>
-				<div></div>
-			</div>
-			<div id="status-notice" class="godot" style="display: none;"></div>
-		</div>
+    .card-tags {
+      display: flex;
+      gap: .5rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
+    }
 
-		<script src="coi-serviceworker.js"></script>
-		<script src="index.js"></script>
-		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":56544,"index.wasm":28001575},"focusCanvas":true,"gdextensionLibs":[]};
-const engine = new Engine(GODOT_CONFIG);
+    .tag {
+      padding: .3rem .75rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
 
-(function () {
-	const INDETERMINATE_STATUS_STEP_MS = 100;
-	const statusProgress = document.getElementById('status-progress');
-	const statusProgressInner = document.getElementById('status-progress-inner');
-	const statusIndeterminate = document.getElementById('status-indeterminate');
-	const statusNotice = document.getElementById('status-notice');
+    .tag-casual    { background: #1a1a3a; color: #a78bfa; }
+    .tag-puzzle    { background: #0d2a2a; color: #34d399; }
+    .tag-web       { background: #1a1528; color: #c084fc; }
+    .tag-coming    { background: #1a1a20; color: #666680; }
 
-	let initializing = true;
-	let statusMode = 'hidden';
+    .play-label {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin-top: 1.25rem;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #7c3aed;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
 
-	let animationCallbacks = [];
-	function animate(time) {
-		animationCallbacks.forEach((callback) => callback(time));
-		requestAnimationFrame(animate);
-	}
-	requestAnimationFrame(animate);
+    .card:hover .play-label {
+      opacity: 1;
+      transform: translateX(0);
+    }
 
-	function animateStatusIndeterminate(ms) {
-		const i = Math.floor((ms / INDETERMINATE_STATUS_STEP_MS) % 8);
-		if (statusIndeterminate.children[i].style.borderTopColor === '') {
-			Array.prototype.slice.call(statusIndeterminate.children).forEach((child) => {
-				child.style.borderTopColor = '';
-			});
-			statusIndeterminate.children[i].style.borderTopColor = '#dfdfdf';
-		}
-	}
+    .play-label svg {
+      width: 14px; height: 14px;
+      fill: currentColor;
+    }
 
-	function setStatusMode(mode) {
-		if (statusMode === mode || !initializing) {
-			return;
-		}
-		[statusProgress, statusIndeterminate, statusNotice].forEach((elem) => {
-			elem.style.display = 'none';
-		});
-		animationCallbacks = animationCallbacks.filter(function (value) {
-			return (value !== animateStatusIndeterminate);
-		});
-		switch (mode) {
-		case 'progress':
-			statusProgress.style.display = 'block';
-			break;
-		case 'indeterminate':
-			statusIndeterminate.style.display = 'block';
-			animationCallbacks.push(animateStatusIndeterminate);
-			break;
-		case 'notice':
-			statusNotice.style.display = 'block';
-			break;
-		case 'hidden':
-			break;
-		default:
-			throw new Error('Invalid status mode');
-		}
-		statusMode = mode;
-	}
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #44445a;
+      font-size: .8rem;
+    }
 
-	function setStatusNotice(text) {
-		while (statusNotice.lastChild) {
-			statusNotice.removeChild(statusNotice.lastChild);
-		}
-		const lines = text.split('\n');
-		lines.forEach((line) => {
-			statusNotice.appendChild(document.createTextNode(line));
-			statusNotice.appendChild(document.createElement('br'));
-		});
-	}
+    footer a { color: #6666a0; text-decoration: none; }
+    footer a:hover { color: #a78bfa; }
+  </style>
+</head>
+<body>
 
-	function displayFailureNotice(err) {
-		const msg = err.message || err;
-		console.error(msg);
-		setStatusNotice(msg);
-		setStatusMode('notice');
-		initializing = false;
-	}
+  <section class="hero">
+    <h1>Vibe Stressless Games</h1>
+    <p>A collection of relaxing browser games. No installs, no stress &mdash; just play.</p>
+  </section>
 
-	const missing = Engine.getMissingFeatures();
-	if (missing.length !== 0) {
-		const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
-		displayFailureNotice(missingMsg + missing.join('\n'));
-	} else {
-		setStatusMode('indeterminate');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (total > 0) {
-					statusProgressInner.style.width = `${(current / total) * 100}%`;
-					setStatusMode('progress');
-					if (current === total) {
-						// wait for progress bar animation
-						setTimeout(() => {
-							setStatusMode('indeterminate');
-						}, 500);
-					}
-				} else {
-					setStatusMode('indeterminate');
-				}
-			},
-		}).then(() => {
-			setStatusMode('hidden');
-			initializing = false;
-		}, displayFailureNotice);
-	}
-}());
-		</script>
-	</body>
+  <section class="games">
+
+    <a href="vibe-money/" class="card">
+      <div class="card-icon" style="background:#1a1535;">&#x1f4b0;</div>
+      <h2>Vibe Money</h2>
+      <p>Catch falling coins, dodge obstacles, and stack up your score in this chill endless runner.</p>
+      <div class="card-tags">
+        <span class="tag tag-casual">Casual</span>
+        <span class="tag tag-coming">Coming Soon</span>
+      </div>
+      <span class="play-label">
+        Play now
+        <svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z"/></svg>
+      </span>
+    </a>
+
+    <a href="infinite-loop-hex/" class="card">
+      <div class="card-icon" style="background:#0d2525;">&#x1f4a0;</div>
+      <h2>Infinity Loop HEX</h2>
+      <p>Rotate hexagonal tiles to connect every path into perfect loops. A meditative puzzle.</p>
+      <div class="card-tags">
+        <span class="tag tag-puzzle">Puzzle</span>
+        <span class="tag tag-web">Play in Browser</span>
+      </div>
+      <span class="play-label">
+        Play now
+        <svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z"/></svg>
+      </span>
+    </a>
+
+  </section>
+
+  <footer>
+    Built with Godot &middot; <a href="https://github.com/ZangaiFamily/vibe-stressless-games">Source on GitHub</a>
+  </footer>
+
+</body>
 </html>
-
