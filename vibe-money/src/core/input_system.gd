@@ -1,20 +1,21 @@
-## Abstracts all player input into a single horizontal direction value.
-## Outputs input_direction: float from -1.0 (left) to 1.0 (right).
+## Abstracts all player input into horizontal movement.
+## Touch/mouse: direct follow (target_x). Keyboard: direction-based.
 ## See design/gdd/input-system.md for full specification.
 class_name InputSystem
 extends Node
 
-## Pixels of drag needed to reach full speed (touch/mouse).
-@export var drag_sensitivity: float = 100.0
 ## Gamepad stick deadzone threshold.
 @export var stick_deadzone: float = 0.15
 
-## Current normalized input direction. Read this from Player Controller.
+## Current normalized input direction for keyboard/gamepad.
 var input_direction: float = 0.0
+## Target X position in world space for direct follow (touch/mouse).
+var target_x: float = -1.0
+## True when touch/mouse is actively controlling position.
+var is_direct_touch: bool = false
 
 var _enabled: bool = true
-var _is_dragging: bool = false
-var _drag_origin_x: float = 0.0
+var _is_touching: bool = false
 
 
 func enable() -> void:
@@ -24,57 +25,63 @@ func enable() -> void:
 func disable() -> void:
 	_enabled = false
 	input_direction = 0.0
-	_is_dragging = false
+	is_direct_touch = false
+	_is_touching = false
+	target_x = -1.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _enabled:
 		return
 
-	# Touch drag-to-slide
+	# Touch — direct follow
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			_is_dragging = true
-			_drag_origin_x = touch.position.x
+			_is_touching = true
+			is_direct_touch = true
+			target_x = touch.position.x
 		else:
-			_is_dragging = false
+			_is_touching = false
+			is_direct_touch = false
 
 	elif event is InputEventScreenDrag:
-		if _is_dragging:
+		if _is_touching:
 			var drag := event as InputEventScreenDrag
-			input_direction = clampf((drag.position.x - _drag_origin_x) / drag_sensitivity, -1.0, 1.0)
-			return
+			target_x = drag.position.x
 
-	# Mouse drag (PC playtesting)
-	if event is InputEventMouseButton:
+	# Mouse — direct follow (PC playtesting)
+	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
-				_is_dragging = true
-				_drag_origin_x = mb.position.x
+				_is_touching = true
+				is_direct_touch = true
+				target_x = mb.position.x
 			else:
-				_is_dragging = false
+				_is_touching = false
+				is_direct_touch = false
 
 
 func _physics_process(_delta: float) -> void:
 	if not _enabled:
 		input_direction = 0.0
+		is_direct_touch = false
 		return
 
-	# Mouse drag (continuous tracking)
-	if _is_dragging and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		var mouse_x := get_viewport().get_mouse_position().x
-		input_direction = clampf((mouse_x - _drag_origin_x) / drag_sensitivity, -1.0, 1.0)
+	# Mouse continuous tracking for direct follow
+	if _is_touching and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		target_x = get_viewport().get_mouse_position().x
+		is_direct_touch = true
 		return
 
-	if not _is_dragging:
+	if not _is_touching:
+		is_direct_touch = false
 		# Keyboard input
 		var kb_dir := Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
 		if kb_dir != 0.0:
 			input_direction = kb_dir
 			return
 
-		# Gamepad (handled via action strengths with deadzone in project settings)
-		# If no keyboard input, direction is 0
+		# Gamepad / no input
 		input_direction = 0.0

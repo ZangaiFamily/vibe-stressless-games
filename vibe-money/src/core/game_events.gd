@@ -25,3 +25,6 @@ signal run_ended(run_stats: Dictionary)
 
 # --- Player signals ---
 signal player_moved(velocity: Vector2)
+
+# --- Navigation signals ---
+signal return_to_menu

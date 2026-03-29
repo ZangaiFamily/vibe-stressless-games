@@ -14,25 +14,28 @@ func activate(p_item_def: Resource, p_position: Vector2, p_fall_speed: float) ->
 	position = p_position
 	_active = true
 	visible = true
-	monitoring = true
-	monitorable = true
+	set_deferred("monitoring", true)
+	set_deferred("monitorable", true)
 
-	# Set collision shape from item def
-	var shape_node := get_node_or_null("CollisionShape2D") as CollisionShape2D
-	if shape_node and shape_node.shape is CircleShape2D:
-		(shape_node.shape as CircleShape2D).radius = item_def.hitbox_radius
-
-	# Set visual
+	# Set visual — use Kenney puzzle-pack-2 texture from spawner cache
 	var sprite := get_node_or_null("Sprite2D") as Sprite2D
 	if sprite:
-		sprite.scale = Vector2.ONE * item_def.visual_scale
-		match item_def.id:
-			&"coin_bronze": sprite.modulate = Color(0.8, 0.6, 0.3)
-			&"coin_silver": sprite.modulate = Color(0.8, 0.8, 0.9)
-			&"coin_gold": sprite.modulate = Color(1.0, 0.85, 0.2)
-			&"hazard_bomb": sprite.modulate = Color(0.3, 0.3, 0.3)
-			&"hazard_poop": sprite.modulate = Color(0.5, 0.35, 0.2)
-			&"hazard_spike": sprite.modulate = Color(0.7, 0.1, 0.1)
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		sprite.modulate = Color.WHITE
+		var spawner := get_parent()
+		if spawner and spawner.has_method("get_item_texture"):
+			sprite.texture = spawner.get_item_texture(item_def.id)
+		# Scale to uniform ~36px gameplay size regardless of source dimensions
+		var target_px: float = 36.0 * item_def.visual_scale
+		var tex_size: float = maxf(sprite.texture.get_width(), sprite.texture.get_height()) if sprite.texture else 128.0
+		var uniform_scale: float = target_px / tex_size
+		sprite.scale = Vector2.ONE * uniform_scale
+
+	# Fit collision shape to match visual size
+	var shape_node := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape_node and shape_node.shape is CircleShape2D:
+		var col_radius: float = 16.0 * item_def.visual_scale
+		(shape_node.shape as CircleShape2D).radius = col_radius
 
 
 func deactivate() -> void:

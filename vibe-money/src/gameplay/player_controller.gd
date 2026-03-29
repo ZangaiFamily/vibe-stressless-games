@@ -1,4 +1,5 @@
 ## Converts input direction into physical character movement.
+## Supports direct follow (touch/mouse) and velocity-based (keyboard).
 ## See design/gdd/player-controller.md for specification.
 class_name PlayerController
 extends CharacterBody2D
@@ -9,6 +10,8 @@ extends CharacterBody2D
 @export var collision_radius: float = 16.0
 @export var player_y_percent: float = 0.85
 @export var screen_margin: float = 8.0
+## How quickly the player follows the finger (higher = snappier).
+@export var follow_speed: float = 18.0
 
 var _enabled: bool = false
 var _input_system: Node
@@ -26,26 +29,34 @@ func _physics_process(delta: float) -> void:
 	if not _enabled or not _input_system:
 		return
 
-	var input_dir: float = _input_system.input_direction
-	var target_velocity_x: float = input_dir * move_speed
-
-	if input_dir != 0.0:
-		velocity.x = move_toward(velocity.x, target_velocity_x, acceleration * delta)
-	else:
-		velocity.x = move_toward(velocity.x, 0.0, deceleration * delta)
-
-	move_and_slide()
-
-	# Clamp to screen boundaries
 	var vp_width := get_viewport_rect().size.x
 	var left_bound := screen_margin + collision_radius
 	var right_bound := vp_width - screen_margin - collision_radius
-	position.x = clampf(position.x, left_bound, right_bound)
 
-	# Zero velocity if clamped at edge
-	if position.x <= left_bound or position.x >= right_bound:
-		if signf(velocity.x) == signf(position.x - vp_width * 0.5):
-			velocity.x = 0.0
+	if _input_system.is_direct_touch:
+		# Direct follow — lerp toward finger position
+		var clamped_target := clampf(_input_system.target_x, left_bound, right_bound)
+		position.x = lerpf(position.x, clamped_target, follow_speed * delta)
+		position.x = clampf(position.x, left_bound, right_bound)
+		velocity.x = 0.0
+	else:
+		# Velocity-based movement for keyboard/gamepad
+		var input_dir: float = _input_system.input_direction
+		var target_velocity_x: float = input_dir * move_speed
+
+		if input_dir != 0.0:
+			velocity.x = move_toward(velocity.x, target_velocity_x, acceleration * delta)
+		else:
+			velocity.x = move_toward(velocity.x, 0.0, deceleration * delta)
+
+		move_and_slide()
+
+		position.x = clampf(position.x, left_bound, right_bound)
+
+		# Zero velocity if clamped at edge
+		if position.x <= left_bound or position.x >= right_bound:
+			if signf(velocity.x) == signf(position.x - vp_width * 0.5):
+				velocity.x = 0.0
 
 	GameEvents.player_moved.emit(velocity)
 

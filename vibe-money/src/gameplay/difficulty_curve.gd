@@ -4,10 +4,10 @@
 class_name DifficultyCurve
 extends Node
 
-@export var ramp_duration: float = 120.0
-@export var ease_curve: float = 2.0
-@export var max_spawn_rate_mult: float = 2.5
-@export var max_speed_mult: float = 1.8
+@export var ramp_duration: float = 90.0
+@export var ease_curve: float = 1.5
+@export var max_spawn_rate_mult: float = 3.0
+@export var max_speed_mult: float = 2.2
 @export var min_hazard_ratio: float = 0.3
 @export var max_hazard_ratio: float = 0.7
 

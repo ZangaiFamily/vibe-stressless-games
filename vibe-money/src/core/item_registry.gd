@@ -40,9 +40,14 @@ const ITEM_PATHS: Array[String] = [
 	"res://assets/data/items/coin_bronze.tres",
 	"res://assets/data/items/coin_silver.tres",
 	"res://assets/data/items/coin_gold.tres",
+	"res://assets/data/items/coin_emerald.tres",
+	"res://assets/data/items/coin_diamond.tres",
 	"res://assets/data/items/hazard_bomb.tres",
 	"res://assets/data/items/hazard_poop.tres",
 	"res://assets/data/items/hazard_spike.tres",
+	"res://assets/data/items/hazard_lightning.tres",
+	"res://assets/data/items/hazard_trash.tres",
+	"res://assets/data/items/hazard_ice.tres",
 ]
 
 
