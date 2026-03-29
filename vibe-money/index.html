@@ -89,50 +89,6 @@ body {
 	text-align: center;
 	z-index: 1;
 }
-
-#update-banner {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	background: linear-gradient(135deg, #2d6a4f, #40916c);
-	color: #fff;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	font-size: 14px;
-	padding: 10px 16px;
-	z-index: 9999;
-	text-align: center;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-#update-banner button {
-	background: #fff;
-	color: #2d6a4f;
-	border: none;
-	border-radius: 4px;
-	padding: 4px 14px;
-	margin-left: 12px;
-	font-weight: bold;
-	cursor: pointer;
-	font-size: 13px;
-}
-
-#update-banner button:hover {
-	background: #d8f3dc;
-}
-
-#update-banner .dismiss {
-	background: transparent;
-	color: rgba(255,255,255,0.8);
-	margin-left: 8px;
-	padding: 4px 8px;
-	font-size: 16px;
-}
-
-#update-banner .dismiss:hover {
-	color: #fff;
-}
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
@@ -140,12 +96,6 @@ body {
 
 	</head>
 	<body>
-		<div id="update-banner">
-			A new version is available!
-			<button onclick="updateAndReload()">Update Now</button>
-			<button class="dismiss" onclick="this.parentElement.style.display='none'">&times;</button>
-		</div>
-
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
 		</canvas>
@@ -162,82 +112,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-/**
- * Service Worker Update Manager
- * - Deregisters stale COI service workers that conflict with Godot's SW
- * - Detects new Godot SW versions and shows an update banner
- */
-let _pendingWorker = null;
-
-function updateAndReload() {
-	if (_pendingWorker) {
-		// Tell Godot SW to activate immediately and reload all clients
-		_pendingWorker.postMessage('update');
-	} else {
-		// Fallback: clear cache and hard reload
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistration().then(function (reg) {
-				if (reg && reg.active) {
-					reg.active.postMessage('clear');
-				}
-			});
-		}
-		setTimeout(function () { window.location.reload(); }, 300);
-	}
-}
-
-// Deregister any rogue COI service worker, then set up update monitoring
-(function () {
-	if (!('serviceWorker' in navigator)) return;
-
-	// Phase 1: Find and deregister stale COI service workers
-	navigator.serviceWorker.getRegistrations().then(function (registrations) {
-		registrations.forEach(function (reg) {
-			// COI SW script URL contains "coi-serviceworker"
-			if (reg.active && reg.active.scriptURL.indexOf('coi-serviceworker') !== -1) {
-				console.log('[SW] Deregistering stale COI service worker:', reg.active.scriptURL);
-				reg.unregister().then(function () {
-					console.log('[SW] COI service worker removed — reloading');
-					window.location.reload();
-				});
-			}
-		});
-	});
-
-	// Phase 2: Monitor Godot's service worker for updates
-	navigator.serviceWorker.getRegistration().then(function (reg) {
-		if (!reg) return;
-
-		// A new worker is already waiting (installed before page load)
-		if (reg.waiting) {
-			_pendingWorker = reg.waiting;
-			document.getElementById('update-banner').style.display = 'block';
-		}
-
-		// Listen for future updates
-		reg.addEventListener('updatefound', function () {
-			var newWorker = reg.installing;
-			if (!newWorker) return;
-
-			newWorker.addEventListener('statechange', function () {
-				// New version installed and ready to activate
-				if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-					_pendingWorker = newWorker;
-					document.getElementById('update-banner').style.display = 'block';
-					console.log('[SW] New version available — update banner shown');
-				}
-			});
-		});
-	});
-
-	// If the new SW took control (e.g. via skipWaiting), reload to get fresh assets
-	navigator.serviceWorker.addEventListener('controllerchange', function () {
-		console.log('[SW] New service worker activated — reloading');
-		window.location.reload();
-	});
-}());
-
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":303564,"index.wasm":35739700},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":455216,"index.wasm":37685705},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

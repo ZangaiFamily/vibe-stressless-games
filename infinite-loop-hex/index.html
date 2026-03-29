@@ -89,62 +89,12 @@ body {
 	text-align: center;
 	z-index: 1;
 }
-
-#update-banner {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	background: linear-gradient(135deg, #2d6a4f, #40916c);
-	color: #fff;
-	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-	font-size: 14px;
-	padding: 10px 16px;
-	z-index: 9999;
-	text-align: center;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-#update-banner button {
-	background: #fff;
-	color: #2d6a4f;
-	border: none;
-	border-radius: 4px;
-	padding: 4px 14px;
-	margin-left: 12px;
-	font-weight: bold;
-	cursor: pointer;
-	font-size: 13px;
-}
-
-#update-banner button:hover {
-	background: #d8f3dc;
-}
-
-#update-banner .dismiss {
-	background: transparent;
-	color: rgba(255,255,255,0.8);
-	margin-left: 8px;
-	padding: 4px 8px;
-	font-size: 16px;
-}
-
-#update-banner .dismiss:hover {
-	color: #fff;
-}
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 
 	</head>
 	<body>
-		<div id="update-banner">
-			A new version is available!
-			<button onclick="updateAndReload()">Update Now</button>
-			<button class="dismiss" onclick="this.parentElement.style.display='none'">&times;</button>
-		</div>
-
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
 		</canvas>
@@ -161,75 +111,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-/**
- * Service Worker Manager
- * - Deregisters stale COI service workers from previous deployments
- * - Detects new SW versions and shows an update banner
- */
-let _pendingWorker = null;
-
-function updateAndReload() {
-	if (_pendingWorker) {
-		_pendingWorker.postMessage('update');
-	} else {
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistrations().then(function (registrations) {
-				registrations.forEach(function (reg) { reg.unregister(); });
-			});
-			caches.keys().then(function (names) {
-				names.forEach(function (name) { caches.delete(name); });
-			});
-		}
-		setTimeout(function () { window.location.reload(); }, 300);
-	}
-}
-
-(function () {
-	if (!('serviceWorker' in navigator)) return;
-
-	// Deregister stale COI service workers from previous deployment
-	navigator.serviceWorker.getRegistrations().then(function (registrations) {
-		registrations.forEach(function (reg) {
-			if (reg.active && reg.active.scriptURL.indexOf('coi-serviceworker') !== -1) {
-				console.log('[SW] Deregistering stale COI service worker:', reg.active.scriptURL);
-				reg.unregister().then(function () {
-					console.log('[SW] COI service worker removed — reloading');
-					window.location.reload();
-				});
-			}
-		});
-	});
-
-	// Monitor for SW updates
-	navigator.serviceWorker.getRegistration().then(function (reg) {
-		if (!reg) return;
-
-		if (reg.waiting) {
-			_pendingWorker = reg.waiting;
-			document.getElementById('update-banner').style.display = 'block';
-		}
-
-		reg.addEventListener('updatefound', function () {
-			var newWorker = reg.installing;
-			if (!newWorker) return;
-
-			newWorker.addEventListener('statechange', function () {
-				if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-					_pendingWorker = newWorker;
-					document.getElementById('update-banner').style.display = 'block';
-					console.log('[SW] New version available — update banner shown');
-				}
-			});
-		});
-	});
-
-	navigator.serviceWorker.addEventListener('controllerchange', function () {
-		console.log('[SW] New service worker activated — reloading');
-		window.location.reload();
-	});
-}());
-
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":25520,"index.wasm":35739700},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":25520,"index.wasm":37685705},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -292,6 +174,7 @@ const engine = new Engine(GODOT_CONFIG);
 			} catch (err) {
 				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
 			}
+			// There's a chance that installing the service worker would fix the issue
 			Promise.race([
 				serviceWorkerRegistrationPromise.then((registration) => {
 					if (registration != null) {
@@ -299,15 +182,18 @@ const engine = new Engine(GODOT_CONFIG);
 					}
 					return registration;
 				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
 				new Promise((resolve) => {
 					setTimeout(() => resolve(), 2000);
 				}),
 			]).then(() => {
+				// Reload if there was no error.
 				window.location.reload();
 			}).catch((err) => {
 				console.error('Error while registering service worker:', err);
 			});
 		} else {
+			// Display the message as usual
 			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
 			displayFailureNotice(missingMsg + missing.join('\n'));
 		}
@@ -331,3 +217,4 @@ const engine = new Engine(GODOT_CONFIG);
 		</script>
 	</body>
 </html>
+
