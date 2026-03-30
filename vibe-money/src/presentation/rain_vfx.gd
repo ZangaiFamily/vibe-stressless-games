@@ -1,72 +1,112 @@
-## Continuous particle rain effect with two depth layers.
+## Continuous particle rain effect using Kenney particle textures.
 ## See design/gdd/rain-vfx-system.md for specification.
 class_name RainVFX
 extends Node2D
 
-@export var base_particle_count: int = 500
-@export var min_rain_speed: float = 300.0
-@export var max_rain_speed: float = 800.0
-@export var base_rain_angle: float = 10.0
-@export var wind_cycle_seconds: float = 8.0
-@export var max_wind_angle: float = 5.0
+## Matches old sky particle parameters from parallax_bg.gd
+@export var base_particle_count: int = 40
+@export var min_rain_speed: float = 8.0
+@export var max_rain_speed: float = 30.0
+@export var drift_x_range: float = 5.0
+@export var sky_coverage: float = 0.85
+
+## Size range 12-28px from ~220px atlas regions.
+const SCALE_MIN: float = 0.054  # 12.0 / 220.0
+const SCALE_MAX: float = 0.127  # 28.0 / 220.0
+
+## Spritesheet containing all particle textures.
+const SPRITESHEET_PATH := "res://assets/art/puzzle/particles/spritesheet_particles.png"
+
+## Atlas regions from spritesheet XML — [name, x, y, width, height].
+const ATLAS_REGIONS: Array = [
+	[&"particleBlue_1", 230, 224, 224, 222],
+	[&"particleBlue_3", 681, 0, 192, 183],
+	[&"particleBlue_6", 0, 0, 228, 226],
+	[&"particleWhite_1", 230, 0, 224, 222],
+	[&"particleWhite_3", 678, 857, 192, 183],
+	[&"particleYellow_1", 452, 672, 224, 222],
+	[&"particleYellow_3", 678, 672, 192, 183],
+	[&"particleYellow_6", 0, 456, 228, 226],
+]
 
 var _intensity: float = 1.0
-var _bg_particles: GPUParticles2D
-var _fg_particles: GPUParticles2D
+var _layers: Array[GPUParticles2D] = []
 
 
 func _ready() -> void:
-	_bg_particles = _create_rain_layer("BackgroundRain", 0.5, min_rain_speed, 0.3)
-	_fg_particles = _create_rain_layer("ForegroundRain", 1.0, max_rain_speed, 0.5)
-	add_child(_bg_particles)
-	add_child(_fg_particles)
+	# Load PNG directly — bypasses Godot import system
+	var sheet_img := Image.new()
+	var err := sheet_img.load(SPRITESHEET_PATH)
+	if err != OK:
+		push_warning("[RainVFX] Failed to load spritesheet: %s" % error_string(err))
+		var layer := _create_rain_layer("FallbackRain", null, 1.0, max_rain_speed, 0.5)
+		add_child(layer)
+		_layers.append(layer)
+		return
 
+	# Cut individual particle images from the spritesheet
+	var textures: Array[Texture2D] = []
+	for region_data in ATLAS_REGIONS:
+		var region := Rect2i(region_data[1], region_data[2], region_data[3], region_data[4])
+		var sub_img := sheet_img.get_region(region)
+		textures.append(ImageTexture.create_from_image(sub_img))
 
-func _process(_delta: float) -> void:
-	var wind_offset := sin(Time.get_ticks_msec() / 1000.0 / wind_cycle_seconds * TAU) * max_wind_angle
-	var angle := deg_to_rad(90.0 + base_rain_angle + wind_offset)
-
-	_update_direction(_bg_particles, angle)
-	_update_direction(_fg_particles, angle)
+	# Use 3 layers (fewer draw calls) with shuffled textures
+	var layer_count := 3
+	var per_layer := maxi(base_particle_count / layer_count, 5)
+	for i in layer_count:
+		var tex := textures[i % textures.size()]
+		var speed := lerpf(min_rain_speed, max_rain_speed, float(i) / (layer_count - 1))
+		var opacity := lerpf(0.15, 0.5, float(i) / (layer_count - 1))
+		var layer := _create_rain_layer(
+			"SkyParticles_%d" % i, tex, per_layer, speed, opacity
+		)
+		add_child(layer)
+		_layers.append(layer)
 
 
 func set_intensity(value: float) -> void:
 	_intensity = value
-	if _bg_particles:
-		_bg_particles.amount = int(base_particle_count * 0.5 * _intensity)
-	if _fg_particles:
-		_fg_particles.amount = int(base_particle_count * _intensity)
+	for layer in _layers:
+		layer.amount = maxi(int(base_particle_count / maxi(_layers.size(), 1) * _intensity), 1)
 
 
-func _create_rain_layer(layer_name: String, scale_mult: float, speed: float, opacity: float) -> GPUParticles2D:
+func _create_rain_layer(layer_name: String, tex: Texture2D, amount: int, speed: float, opacity: float) -> GPUParticles2D:
+	var vp_size := get_viewport_rect().size
+	var fall_height := vp_size.y * sky_coverage
+
 	var particles := GPUParticles2D.new()
 	particles.name = layer_name
-	particles.amount = int(base_particle_count * scale_mult * _intensity)
-	particles.lifetime = get_viewport_rect().size.y / speed + 0.5
-	particles.preprocess = particles.lifetime
+	particles.amount = maxi(amount, 1)
+	particles.lifetime = fall_height / speed
+	particles.preprocess = minf(particles.lifetime, 3.0)  # Cap to avoid startup freeze
+
+	if tex:
+		particles.texture = tex
 
 	var mat := ParticleProcessMaterial.new()
-	mat.direction = Vector3(sin(deg_to_rad(base_rain_angle)), 1.0, 0.0).normalized()
-	mat.spread = 5.0
+	# Slow downward drift with slight horizontal wander
+	mat.direction = Vector3(0.0, 1.0, 0.0)
+	mat.spread = 0.0
 	mat.initial_velocity_min = speed * 0.8
 	mat.initial_velocity_max = speed * 1.2
 	mat.gravity = Vector3.ZERO
-	mat.scale_min = 0.5 * scale_mult
-	mat.scale_max = 1.5 * scale_mult
-	mat.color = Color(0.7, 0.8, 1.0, opacity)
 
-	# Emission: full width of screen, above viewport
+	# Horizontal drift (matches old drift_x of -5 to 5)
+	mat.velocity_limit_curve = null
+	mat.direction = Vector3(randf_range(-drift_x_range, drift_x_range) / speed, 1.0, 0.0).normalized()
+
+	# Scale to match old 12-28px size range
+	mat.scale_min = SCALE_MIN
+	mat.scale_max = SCALE_MAX
+	mat.color = Color(1.0, 1.0, 1.0, opacity)
+
+	# Emission: full width, spread across sky area (not just top edge)
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	var vp_size := get_viewport_rect().size
-	mat.emission_box_extents = Vector3(vp_size.x * 0.6, 10.0, 0.0)
+	mat.emission_box_extents = Vector3(vp_size.x * 0.5, fall_height * 0.5, 0.0)
 
 	particles.process_material = mat
-	particles.position = Vector2(vp_size.x * 0.5, -20.0)
+	# Center emission box over the sky area
+	particles.position = Vector2(vp_size.x * 0.5, fall_height * 0.5)
 
 	return particles
-
-
-func _update_direction(particles: GPUParticles2D, angle: float) -> void:
-	var mat := particles.process_material as ParticleProcessMaterial
-	if mat:
-		mat.direction = Vector3(cos(angle), sin(angle), 0.0).normalized()

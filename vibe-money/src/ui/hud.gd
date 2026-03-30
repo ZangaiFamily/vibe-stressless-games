@@ -10,12 +10,9 @@ extends CanvasLayer
 
 var _score_label: Label
 var _streak_label: Label
-var _timer_label: Label
 var _lives_container: HBoxContainer
 var _life_icons: Array[TextureRect] = []
 var _visible_state: bool = false
-var _run_time: float = 0.0
-var _running: bool = false
 
 
 func _ready() -> void:
@@ -25,25 +22,15 @@ func _ready() -> void:
 
 	GameEvents.score_changed.connect(_on_score_changed)
 	GameEvents.streak_changed.connect(_on_streak_changed)
-	GameEvents.streak_reset.connect(_on_streak_reset)
 	GameEvents.life_lost.connect(_on_life_lost)
 	GameEvents.run_started.connect(_on_run_started)
 	GameEvents.run_ended.connect(_on_run_ended)
-
-
-func _process(delta: float) -> void:
-	if _running and _timer_label:
-		_run_time += delta
-		var mins: int = int(_run_time) / 60
-		var secs: int = int(_run_time) % 60
-		_timer_label.text = "%d:%02d" % [mins, secs]
 
 
 func show_hud() -> void:
 	_visible_state = true
 	_score_label.visible = true
 	_streak_label.visible = true
-	_timer_label.visible = true
 	_lives_container.visible = true
 
 
@@ -51,14 +38,12 @@ func hide_hud() -> void:
 	_visible_state = false
 	_score_label.visible = false
 	_streak_label.visible = false
-	_timer_label.visible = false
 	_lives_container.visible = false
 
 
 func _build_ui() -> void:
 	var margin_container := MarginContainer.new()
 	margin_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin_container.add_theme_constant_override("margin_left", int(hud_margin))
 	margin_container.add_theme_constant_override("margin_right", int(hud_margin))
 	margin_container.add_theme_constant_override("margin_top", int(hud_margin))
@@ -92,16 +77,6 @@ func _build_ui() -> void:
 	_lives_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(_lives_container)
 
-	# Timer (below top bar, centered)
-	_timer_label = Label.new()
-	_timer_label.text = "0:00"
-	_timer_label.add_theme_font_size_override("font_size", 18)
-	_timer_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 0.7))
-	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_timer_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_timer_label.position.y = 52
-	margin_container.add_child(_timer_label)
-
 	_rebuild_lives(3)
 
 
@@ -110,16 +85,13 @@ func _rebuild_lives(count: int) -> void:
 		child.queue_free()
 	_life_icons.clear()
 
-	var heart_tex := load("res://assets/art/puzzle/heart.png") as Texture2D
 	for i in count:
-		var heart := TextureRect.new()
-		heart.texture = heart_tex
-		# Heart asset is 130x118 — size to fit HUD at proper aspect ratio
-		heart.custom_minimum_size = Vector2(32, 28)
-		heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		heart.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		var heart := Label.new()
+		heart.text = "♥"
+		heart.add_theme_font_size_override("font_size", 28)
+		heart.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 		_lives_container.add_child(heart)
-		_life_icons.append(heart)
+		_life_icons.append(null)  # Placeholder — using Label instead of TextureRect
 
 
 func _on_score_changed(total: int, _earned: int) -> void:
@@ -143,37 +115,21 @@ func _on_streak_changed(count: int, multiplier: float) -> void:
 	_streak_label.add_theme_color_override("font_color", Color.WHITE.lerp(Color(1.0, 0.55, 0.0), t))
 
 
-func _on_streak_reset(previous_streak: int) -> void:
-	if not _streak_label or previous_streak < 1:
-		return
-	# Brief fade-to-gray animation per GDD
-	var tween := create_tween()
-	tween.tween_property(_streak_label, "modulate", Color(0.5, 0.5, 0.5, 1.0), 0.15)
-	tween.tween_property(_streak_label, "modulate", Color.WHITE, 0.4)
-
-
 func _on_life_lost(current_lives: int, _damage: int) -> void:
 	var children := _lives_container.get_children()
+	# Gray out the lost heart
 	if current_lives < children.size():
-		var lost_heart := children[current_lives] as TextureRect
+		var lost_heart := children[current_lives] as Label
 		if lost_heart:
-			# Shrink + red flash per GDD, then swap to lost texture
-			var shrink_tween := create_tween()
-			shrink_tween.tween_property(lost_heart, "modulate", Color(1.0, 0.2, 0.2), 0.08)
-			shrink_tween.parallel().tween_property(lost_heart, "scale", Vector2(0.5, 0.5), 0.15)
-			shrink_tween.tween_callback(func():
-				lost_heart.texture = load("res://assets/art/puzzle/heart_lost.png")
-				lost_heart.modulate = Color.WHITE
-			)
-			shrink_tween.tween_property(lost_heart, "scale", Vector2(1.0, 1.0), 0.1)
+			lost_heart.add_theme_color_override("font_color", Color(0.3, 0.3, 0.3))
 			# Shake remaining hearts
 			for i in current_lives:
-				var heart := children[i] as TextureRect
+				var heart := children[i] as Label
 				if heart:
-					var shake_tween := create_tween()
-					shake_tween.tween_property(heart, "position:x", heart.position.x + 4, 0.05)
-					shake_tween.tween_property(heart, "position:x", heart.position.x - 4, 0.05)
-					shake_tween.tween_property(heart, "position:x", heart.position.x, 0.05)
+					var tween := create_tween()
+					tween.tween_property(heart, "position:x", heart.position.x + 4, 0.05)
+					tween.tween_property(heart, "position:x", heart.position.x - 4, 0.05)
+					tween.tween_property(heart, "position:x", heart.position.x, 0.05)
 
 
 func _on_run_started() -> void:
@@ -181,12 +137,8 @@ func _on_run_started() -> void:
 	_score_label.text = "0"
 	_streak_label.text = "Streak: 0 (1.0x)"
 	_streak_label.add_theme_color_override("font_color", Color.WHITE)
-	_run_time = 0.0
-	_running = true
-	_timer_label.text = "0:00"
 	show_hud()
 
 
 func _on_run_ended(_stats: Dictionary) -> void:
-	_running = false
 	hide_hud()

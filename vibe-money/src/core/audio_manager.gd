@@ -46,12 +46,8 @@ func play_sfx(tag: StringName) -> void:
 		return
 
 	if not _sfx_map.has(tag):
-		# Check fallback mappings for new items
-		if SFX_FALLBACKS.has(tag) and _sfx_map.has(SFX_FALLBACKS[tag]):
-			tag = SFX_FALLBACKS[tag]
-		else:
-			push_warning("[AudioManager] Unknown SFX tag: %s" % tag)
-			return
+		push_warning("[AudioManager] Unknown SFX tag: %s" % tag)
+		return
 
 	var player := _get_available_sfx_player()
 	if not player:
@@ -159,15 +155,6 @@ const SFX_PATHS: Array[String] = [
 	"res://assets/audio/sfx/streak_milestone.wav",
 	"res://assets/audio/sfx/ui_tap.wav",
 ]
-
-## Fallback mappings for new items that reuse existing SFX.
-const SFX_FALLBACKS: Dictionary = {
-	&"collect_emerald": &"collect_silver",
-	&"collect_diamond": &"collect_gold",
-	&"hit_lightning": &"hit_spike",
-	&"hit_trash": &"hit_bomb",
-	&"hit_ice": &"hit_spike",
-}
 
 
 func _load_sfx_assets() -> void:

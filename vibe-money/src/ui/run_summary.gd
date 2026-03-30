@@ -12,13 +12,11 @@ var _overlay: ColorRect
 var _score_label: Label
 var _streak_label: Label
 var _coins_label: Label
-var _earned_label: Label
 var _duration_label: Label
 var _high_score_label: Label
 var _retry_button: Button
 var _menu_button: Button
 var _run_manager: Node
-var _wallet: Node
 var _is_visible: bool = false
 
 
@@ -32,10 +30,6 @@ func _ready() -> void:
 
 func bind_run_manager(rm: Node) -> void:
 	_run_manager = rm
-
-
-func bind_wallet(wallet: Node) -> void:
-	_wallet = wallet
 
 
 func _build_ui() -> void:
@@ -85,8 +79,6 @@ func _build_ui() -> void:
 	# Stats
 	_streak_label = _create_stat_label(vbox, "Best Streak: 0")
 	_coins_label = _create_stat_label(vbox, "Coins: 0")
-	_earned_label = _create_stat_label(vbox, "")
-	_earned_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
 	_duration_label = _create_stat_label(vbox, "Time: 0:00")
 
 	# Spacer
@@ -95,45 +87,18 @@ func _build_ui() -> void:
 	vbox.add_child(spacer)
 
 	# Retry button
-	_retry_button = _create_styled_button("RETRY", Color(0.2, 0.65, 0.35))
+	_retry_button = Button.new()
+	_retry_button.text = "RETRY"
+	_retry_button.custom_minimum_size = Vector2(200, 60)
 	_retry_button.pressed.connect(_on_retry)
 	vbox.add_child(_retry_button)
 
 	# Menu button
-	_menu_button = _create_styled_button("MENU", Color(0.35, 0.35, 0.45))
+	_menu_button = Button.new()
+	_menu_button.text = "Menu"
+	_menu_button.custom_minimum_size = Vector2(200, 40)
 	_menu_button.pressed.connect(_on_menu)
 	vbox.add_child(_menu_button)
-
-
-func _create_styled_button(text: String, bg_color: Color) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(280, 56)
-	btn.add_theme_font_size_override("font_size", 22)
-	btn.add_theme_color_override("font_color", Color.WHITE)
-	btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	btn.add_theme_color_override("font_pressed_color", Color(0.9, 0.9, 0.9))
-
-	# Styled background
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = bg_color
-	normal.corner_radius_top_left = 12
-	normal.corner_radius_top_right = 12
-	normal.corner_radius_bottom_left = 12
-	normal.corner_radius_bottom_right = 12
-	normal.content_margin_top = 12
-	normal.content_margin_bottom = 12
-	btn.add_theme_stylebox_override("normal", normal)
-
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = bg_color.lerp(Color.WHITE, 0.15)
-	btn.add_theme_stylebox_override("hover", hover)
-
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = bg_color.lerp(Color.BLACK, 0.2)
-	btn.add_theme_stylebox_override("pressed", pressed)
-
-	return btn
 
 
 func _create_stat_label(parent: VBoxContainer, text: String) -> Label:
@@ -164,14 +129,6 @@ func _show(stats: Dictionary) -> void:
 	_coins_label.text = "Coins: %d" % coins
 	_duration_label.text = "Time: %d:%02d" % [int(duration) / 60, int(duration) % 60]
 	_high_score_label.visible = is_high
-
-	# Award currency based on score (1 coin per 10 points)
-	var earned: int = final_score / 10
-	if _wallet and earned > 0:
-		_wallet.add_coins(earned)
-		_earned_label.text = "+%d coins earned!" % earned
-	else:
-		_earned_label.text = ""
 
 	# Count-up animation
 	_score_label.text = "0"
@@ -206,4 +163,4 @@ func _on_retry() -> void:
 
 func _on_menu() -> void:
 	_hide()
-	GameEvents.return_to_menu.emit()
+	# TODO: Return to main menu (Vertical Slice)

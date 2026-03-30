@@ -49,7 +49,7 @@ func _physics_process(delta: float) -> void:
 func start() -> void:
 	_active = true
 	_elapsed_time = 0.0
-	_spawn_timer = 0.0
+	_spawn_timer = -0.8  # Brief delay before first spawn
 	_last_column = -1
 
 
@@ -169,13 +169,14 @@ func _create_falling_item() -> Node:
 	collision.shape = CircleShape2D.new()
 	item.add_child(collision)
 
+	# Placeholder sprite (circle)
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite2D"
+	sprite.texture = _create_circle_texture()
 	item.add_child(sprite)
 
-	# Set initial inactive state directly — do NOT call deactivate() here,
-	# because its set_deferred("monitoring", false) would override activate()
-	# if the item is used in the same frame.
+	# Set initial state directly (don't call deactivate() here — its
+	# set_deferred would overwrite activate()'s immediate monitoring=true)
 	item.visible = false
 	item.monitoring = false
 	item.monitorable = false
@@ -183,54 +184,17 @@ func _create_falling_item() -> Node:
 	return item
 
 
-## Kenney puzzle-pack-2 textures (128x128 each)
-const KENNEY_TEXTURES: Dictionary = {
-	&"coin_bronze": "res://assets/art/puzzle/coin_bronze.png",
-	&"coin_silver": "res://assets/art/puzzle/coin_silver.png",
-	&"coin_gold": "res://assets/art/puzzle/coin_gold.png",
-	&"coin_emerald": "res://assets/art/puzzle/coin_emerald.png",
-	&"coin_diamond": "res://assets/art/puzzle/coin_diamond.png",
-	&"hazard_bomb": "res://assets/art/puzzle/hazard_bomb.png",
-	&"hazard_poop": "res://assets/art/puzzle/hazard_poop.png",
-	&"hazard_spike": "res://assets/art/puzzle/hazard_spike.png",
-	&"hazard_lightning": "res://assets/art/puzzle/hazard_lightning.png",
-	&"hazard_trash": "res://assets/art/puzzle/hazard_trash.png",
-	&"hazard_ice": "res://assets/art/puzzle/hazard_ice.png",
-}
-
-## Texture cache — loaded on first use per item ID.
-var _texture_cache: Dictionary = {}  # StringName -> Texture2D
-
-
-func get_item_texture(item_id: StringName) -> Texture2D:
-	if _texture_cache.has(item_id):
-		return _texture_cache[item_id]
-	var tex := _load_item_texture(item_id)
-	_texture_cache[item_id] = tex
-	return tex
-
-
-func _load_item_texture(item_id: StringName) -> Texture2D:
-	if KENNEY_TEXTURES.has(item_id):
-		var path: String = KENNEY_TEXTURES[item_id]
-		var tex := load(path) as Texture2D
-		if tex:
-			return tex
-		push_warning("[ItemSpawner] Failed to load texture: %s" % path)
-	# Fallback — white circle
-	return _create_fallback_texture()
-
-
-func _create_fallback_texture() -> ImageTexture:
-	var size := 18
+func _create_circle_texture() -> ImageTexture:
+	var size := 32
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	var c := Vector2(size * 0.5, size * 0.5)
-	var r := size * 0.45
+	var center := Vector2(size * 0.5, size * 0.5)
+	var radius := size * 0.4
 	for x in size:
 		for y in size:
-			var d := Vector2(x, y).distance_to(c)
-			if d <= r:
-				img.set_pixel(x, y, Color.WHITE)
+			var dist := Vector2(x, y).distance_to(center)
+			if dist <= radius:
+				var alpha := 1.0 - smoothstep(radius - 2.0, radius, dist)
+				img.set_pixel(x, y, Color(1, 1, 1, alpha))
 			else:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
 	return ImageTexture.create_from_image(img)

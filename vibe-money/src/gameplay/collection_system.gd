@@ -4,6 +4,7 @@ class_name CollectionSystem
 extends Node
 
 @export var invincibility_duration: float = 1.0
+@export var start_grace_period: float = 1.5  # Invincibility at run start
 
 var _invincible: bool = false
 var _invincibility_timer: float = 0.0
@@ -72,8 +73,9 @@ func _start_flash() -> void:
 
 func _on_run_started() -> void:
 	_enabled = true
-	_invincible = false
-	_invincibility_timer = 0.0
+	# Grace period: player is invincible for the first moments of a run
+	_invincible = true
+	_invincibility_timer = start_grace_period
 
 
 func _on_run_ended(_stats: Dictionary) -> void:
